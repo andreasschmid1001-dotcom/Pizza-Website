@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pizza Log - Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+  :root {
+    --bg: #f5f0eb;
+    --bg-card: #ffffff;
+    --bg-dark: #1a1714;
+    --text: #1a1714;
+    --text-muted: #8c847a;
+    --accent: #e84e1b;
+    --accent2: #ff7849;
+    --gold: #c9952b;
+    --border: rgba(0,0,0,0.08);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-pill: 999px;
+    --green: #2e7d32;
+    --red: #c62828;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .header {
+    text-align: center;
+    padding: 48px 0 32px;
+  }
+  .header h1 {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 2.5em;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+  }
+  .header h1 em { font-style: italic; color: var(--accent); }
+  .header .back-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85em;
+  }
+  .header .back-link:hover { color: var(--text); }
+
+  /* PASSWORD GATE */
+  .gate {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 48px;
+    border: 1px solid var(--border);
+    text-align: center;
+    max-width: 400px;
+    margin: 60px auto;
+  }
+  .gate h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.5em;
+    margin-bottom: 24px;
+  }
+  .gate input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .gate input:focus { border-color: var(--accent); }
+  .gate .error { color: var(--red); font-size: 0.85em; margin-top: 8px; display: none; }
+  .gate button {
+    margin-top: 16px;
+    width: 100%;
+  }
+
+  /* FORM */
+  .form-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 32px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .form-card h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.5em;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.single { grid-template-columns: 1fr; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .field input, .field select, .field textarea {
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92em;
+    outline: none;
+    background: #fff;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  /* MULTI SELECT */
+  .multi-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .multi-select .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.82em;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .multi-select .chip:hover { border-color: var(--text-muted); }
+  .multi-select .chip.selected {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* STAR PICKER */
+  .star-picker {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .star-picker .star {
+    font-size: 1.5em;
+    cursor: pointer;
+    color: var(--border);
+    transition: color 0.15s;
+    user-select: none;
+  }
+  .star-picker .star.filled { color: var(--gold); }
+  .star-picker .star:hover { color: var(--gold); }
+
+  /* PHOTO UPLOAD */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(232, 78, 27, 0.03);
+  }
+  .drop-zone input { display: none; }
+  .drop-zone .preview-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  .drop-zone .preview-grid img {
+    width: 80px; height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  /* PIZZA ENTRIES */
+  .pizza-entry {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 12px;
+    position: relative;
+    border: 1px solid var(--border);
+  }
+  .pizza-entry .remove-pizza {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .pizza-entry .remove-pizza:hover { background: rgba(198,40,40,0.08); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: var(--radius-pill);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92em;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--bg);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); }
+
+  .btn-add {
+    background: none;
+    border: 1.5px dashed var(--border);
+    color: var(--text-muted);
+    width: 100%;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* SUCCESS */
+  .success-message {
+    background: rgba(46, 125, 50, 0.08);
+    border: 1px solid rgba(46, 125, 50, 0.2);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    display: none;
+  }
+  .success-message h3 { color: var(--green); margin-bottom: 8px; }
+  .success-message a { color: var(--accent); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .form-row.three { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+    .form-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Pizza <em>Admin</em></h1>
+    <a href="index.html" class="back-link">&larr; Back to Pizza Log</a>
+  </div>
+
+  <!-- PASSWORD GATE -->
+  <div id="gate" class="gate">
+    <h2>Enter Password</h2>
+    <input type="password" id="password-input" placeholder="Password" autofocus>
+    <div class="error" id="gate-error">Wrong password</div>
+    <button class="btn btn-primary" onclick="checkPassword()">Enter</button>
+  </div>
+
+  <!-- MAIN FORM (hidden until authenticated) -->
+  <div id="admin-form" style="display:none">
+
+    <!-- SESSION DETAILS -->
+    <div class="form-card">
+      <h2>New Session</h2>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="session-date">
+        </div>
+        <div class="field">
+          <label>Session #</label>
+          <input type="number" id="session-number" min="1">
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Pizzaioli</label>
+        <div class="multi-select" id="pizzaiolo-select"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input type="text" id="new-pizzaiolo" placeholder="Add new pizzaiolo..." style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Space Grotesk',sans-serif;font-size:0.85em">
+          <button class="btn btn-secondary" onclick="addNewPizzaiolo()" style="padding:8px 16px;font-size:0.82em">Add</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Guests</label>
+        <input type="text" id="session-guests" placeholder="e.g. Max, Julia">
+      </div>
+    </div>
+
+    <!-- DOUGH RECIPE -->
+    <div class="form-card">
+      <h2>Dough Recipe</h2>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Flour</label>
+          <input type="text" id="flour" placeholder="e.g. Caputo Nuvola" list="flour-list">
+          <datalist id="flour-list"></datalist>
+        </div>
+        <div class="field">
+          <label>Amount (g)</label>
+          <input type="number" id="amount-flour" min="0">
+        </div>
+      </div>
+
+      <div class="form-row three">
+        <div class="field">
+          <label>Hydration %</label>
+          <input type="number" id="hydration" min="0" max="100" step="1" placeholder="65">
+        </div>
+        <div class="field">
+          <label>Sourdough Starter %</label>
+          <input type="number" id="starter" min="0" max="100" step="1" placeholder="20">
+        </div>
+        <div class="field">
+          <label>Salt (g)</label>
+          <input type="number" id="salt" min="0" step="0.1">
+        </div>
+      </div>
+
+      <div class="form-row three">
+        <div class="field">
+          <label>Ball Weight (g)</label>
+          <input type="number" id="ball-weight" min="0">
+        </div>
+        <div class="field">
+          <label>Yeast</label>
+          <div class="multi-select" id="yeast-select">
+            <span class="chip" data-value="Fresh Yeast">Fresh Yeast</span>
+            <span class="chip" data-value="Dry Yeast">Dry Yeast</span>
+            <span class="chip" data-value="None">None</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Oil</label>
+          <select id="oil">
+            <option value="">None</option>
+            <option value="Olive Oil">Olive Oil</option>
+            <option value="N">N</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- FERMENTATION -->
+    <div class="form-card">
+      <h2>Fermentation</h2>
+
+      <div class="form-row three">
+        <div class="field">
+          <label>Total Fermentation Time</label>
+          <input type="text" id="ferm-time" placeholder="e.g. 24">
+        </div>
+        <div class="field">
+          <label>Bulk Ferment (hours)</label>
+          <input type="number" id="ferm-bulk" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label>Ball Ferment (hours)</label>
+          <input type="number" id="ferm-balled" min="0" step="0.5">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Fermentation Temperature</label>
+          <div class="multi-select" id="temp-select">
+            <span class="chip" data-value="Fridge">Fridge</span>
+            <span class="chip" data-value="Room Temperature">Room Temp</span>
+            <span class="chip" data-value="Mixed">Mixed</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Outside Temp (&deg;C)</label>
+          <input type="number" id="outside-temp" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <!-- DOUGH SATISFACTION & PROBLEMS -->
+    <div class="form-card">
+      <h2>Dough Quality</h2>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Dough Satisfaction</label>
+        <div class="star-picker" id="dough-stars"></div>
+      </div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Problems with Dough</label>
+        <div class="multi-select" id="dough-problems">
+          <span class="chip" data-value="None">None</span>
+          <span class="chip" data-value="Too sticky">Too sticky</span>
+          <span class="chip" data-value="Too dry">Too dry</span>
+          <span class="chip" data-value="Didn't rise enough">Didn't rise</span>
+          <span class="chip" data-value="Over-proofed">Over-proofed</span>
+          <span class="chip" data-value="Tearing">Tearing</span>
+          <span class="chip" data-value="Hard to shape">Hard to shape</span>
+          <span class="chip" data-value="Too dense">Too dense</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Session Notes</label>
+        <textarea id="session-notes" placeholder="Any notes about the session..."></textarea>
+      </div>
+    </div>
+
+    <!-- PHOTOS -->
+    <div class="form-card">
+      <h2>Session Photos</h2>
+
+      <div class="form-row three" style="margin-bottom:0">
+        <div class="field">
+          <label>Dough Before</label>
+          <div class="drop-zone" id="drop-dough-before" data-field="dough_before_fermentation">
+            Click or drop image
+            <input type="file" accept="image/*">
+            <div class="preview-grid"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Dough After</label>
+          <div class="drop-zone" id="drop-dough-after" data-field="dough_after_fermentation">
+            Click or drop image
+            <input type="file" accept="image/*">
+            <div class="preview-grid"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Session Pizzas</label>
+          <div class="drop-zone" id="drop-session-pizzas" data-field="pizzas">
+            Click or drop images
+            <input type="file" accept="image/*" multiple>
+            <div class="preview-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIZZAS -->
+    <div class="form-card">
+      <h2>Pizzas</h2>
+      <div id="pizza-entries"></div>
+      <button class="btn-add" onclick="addPizzaEntry()">+ Add Pizza</button>
+    </div>
+
+    <!-- SUBMIT -->
+    <div style="text-align:center;padding:24px 0 48px">
+      <button class="btn btn-primary" id="submit-btn" onclick="submitSession()" style="padding:16px 48px;font-size:1em">
+        Save Session
+      </button>
+    </div>
+
+    <div class="success-message" id="success">
+      <h3>Session saved!</h3>
+      <p>Your pizza session has been recorded.</p>
+      <p style="margin-top:12px"><a href="index.html">View on Pizza Log &rarr;</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://uwerozmqqhgvvwvsbzzi.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3ZXJvem1xcWhndnZ3dnNienppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MjY3ODAsImV4cCI6MjA4NzMwMjc4MH0.Q0u_Qgn_964V6ETn2YuzHZTYve37d6YAXhWG1UBWKiA';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3ZXJvem1xcWhndnZ3dnNienppIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTcyNjc4MCwiZXhwIjoyMDg3MzAyNzgwfQ.fZRthAGqoKA9FdZnvyYV5tJLlrv-fimYvY0tbcRA_uw';
+const ADMIN_PASSWORD = 'pizza2026';
+
+// Use service role for writes
+const sbRead = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sbWrite = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+let pizzaioli = [];
+let existingPizzaNames = [];
+let existingFlours = [];
+let doughSatisfaction = 0;
+let pizzaCounter = 0;
+
+// ===== PASSWORD GATE =====
+function checkPassword() {
+  const pw = document.getElementById('password-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    localStorage.setItem('pizza-admin-auth', 'true');
+    showForm();
+  } else {
+    document.getElementById('gate-error').style.display = 'block';
+  }
+}
+
+document.getElementById('password-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+
+function showForm() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('admin-form').style.display = 'block';
+  initForm();
+}
+
+// Check stored auth on load
+if (localStorage.getItem('pizza-admin-auth') === 'true') {
+  showForm();
+}
+
+// ===== INIT =====
+async function initForm() {
+  // Load pizzaioli
+  const { data: pData } = await sbRead.from('pizzaioli').select('*');
+  pizzaioli = pData || [];
+  renderPizzaioloChips();
+
+  // Load existing pizza names for autocomplete
+  const { data: pzData } = await sbRead.from('pizzas').select('name');
+  existingPizzaNames = [...new Set((pzData || []).map(p => p.name).filter(Boolean))].sort();
+
+  // Load existing flours for autocomplete
+  const { data: sData } = await sbRead.from('sessions').select('flour');
+  existingFlours = [...new Set((sData || []).map(s => s.flour).filter(Boolean))].sort();
+  const flourList = document.getElementById('flour-list');
+  existingFlours.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    flourList.appendChild(opt);
+  });
+
+  // Suggest next session number
+  const { data: maxSess } = await sbRead.from('sessions').select('session_number').order('session_number', { ascending: false }).limit(1);
+  if (maxSess && maxSess.length > 0 && maxSess[0].session_number) {
+    document.getElementById('session-number').value = maxSess[0].session_number + 1;
+  }
+
+  // Set today's date
+  document.getElementById('session-date').value = new Date().toISOString().split('T')[0];
+
+  // Init star picker
+  initStarPicker();
+
+  // Init drop zones
+  initDropZones();
+
+  // Add first pizza entry
+  addPizzaEntry();
+}
+
+// ===== PIZZAIOLO CHIPS =====
+function renderPizzaioloChips() {
+  const container = document.getElementById('pizzaiolo-select');
+  container.innerHTML = '';
+  pizzaioli.forEach(p => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.dataset.id = p.id;
+    chip.textContent = p.name;
+    chip.onclick = () => chip.classList.toggle('selected');
+    container.appendChild(chip);
+  });
+}
+
+async function addNewPizzaiolo() {
+  const input = document.getElementById('new-pizzaiolo');
+  const name = input.value.trim();
+  if (!name) return;
+
+  const { data } = await sbWrite.from('pizzaioli').insert({ name }).select();
+  if (data && data.length > 0) {
+    pizzaioli.push(data[0]);
+    renderPizzaioloChips();
+    // Auto-select the new one
+    const chips = document.querySelectorAll('#pizzaiolo-select .chip');
+    chips[chips.length - 1].classList.add('selected');
+    input.value = '';
+  }
+}
+
+// ===== MULTI-SELECT CHIPS =====
+document.querySelectorAll('.multi-select .chip').forEach(chip => {
+  chip.onclick = () => chip.classList.toggle('selected');
+});
+
+function getSelectedChips(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .chip.selected`)].map(c => c.dataset.value || c.dataset.id);
+}
+
+// ===== STAR PICKER =====
+function initStarPicker() {
+  const container = document.getElementById('dough-stars');
+  for (let i = 1; i <= 10; i++) {
+    const star = document.createElement('span');
+    star.className = 'star';
+    star.textContent = '\u2606';
+    star.dataset.value = i;
+    star.onclick = () => {
+      doughSatisfaction = i;
+      updateStars(container, i);
+    };
+    star.onmouseenter = () => updateStars(container, i);
+    container.appendChild(star);
+  }
+  container.onmouseleave = () => updateStars(container, doughSatisfaction);
+}
+
+function updateStars(container, value) {
+  container.querySelectorAll('.star').forEach(s => {
+    const v = parseInt(s.dataset.value);
+    s.textContent = v <= value ? '\u2605' : '\u2606';
+    s.classList.toggle('filled', v <= value);
+  });
+}
+
+// ===== DROP ZONES =====
+function initDropZones() {
+  document.querySelectorAll('.drop-zone').forEach(zone => {
+    const input = zone.querySelector('input[type="file"]');
+    zone._files = [];
+
+    zone.onclick = (e) => {
+      if (e.target === zone || e.target.tagName !== 'IMG') input.click();
+    };
+
+    zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('dragover'); };
+    zone.ondragleave = () => zone.classList.remove('dragover');
+    zone.ondrop = (e) => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      handleFiles(zone, e.dataTransfer.files);
+    };
+
+    input.onchange = () => handleFiles(zone, input.files);
+  });
+}
+
+function handleFiles(zone, files) {
+  for (const file of files) {
+    zone._files.push(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      zone.querySelector('.preview-grid').appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+// ===== PIZZA ENTRIES =====
+function addPizzaEntry() {
+  pizzaCounter++;
+  const id = pizzaCounter;
+  const container = document.getElementById('pizza-entries');
+
+  const nameOptions = existingPizzaNames.map(n => `<option value="${n}">`).join('');
+
+  const entry = document.createElement('div');
+  entry.className = 'pizza-entry';
+  entry.id = `pizza-${id}`;
+  entry.innerHTML = `
+    <button class="remove-pizza" onclick="removePizza(${id})">&times;</button>
+    <div class="form-row">
+      <div class="field">
+        <label>Pizza Name</label>
+        <input type="text" id="pizza-name-${id}" placeholder="e.g. Margherita" list="pizza-names-${id}">
+        <datalist id="pizza-names-${id}">${nameOptions}</datalist>
+      </div>
+      <div class="field">
+        <label>Pizzaiolo</label>
+        <select id="pizza-pizzaiolo-${id}">
+          <option value="">Select...</option>
+          ${pizzaioli.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Rating</label>
+        <div class="star-picker" id="pizza-stars-${id}"></div>
+      </div>
+      <div class="field">
+        <label>Problems</label>
+        <div class="multi-select" id="pizza-problems-${id}">
+          <span class="chip" data-value="Burnt">Burnt</span>
+          <span class="chip" data-value="Undercooked">Undercooked</span>
+          <span class="chip" data-value="Soggy">Soggy</span>
+          <span class="chip" data-value="Torn">Torn</span>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Photo</label>
+      <div class="drop-zone" id="pizza-photo-${id}">
+        Click or drop image
+        <input type="file" accept="image/*">
+        <div class="preview-grid"></div>
+      </div>
+    </div>
+  `;
+  container.appendChild(entry);
+
+  // Init rating stars for this pizza
+  const starContainer = document.getElementById(`pizza-stars-${id}`);
+  let rating = 0;
+  for (let i = 1; i <= 10; i++) {
+    const star = document.createElement('span');
+    star.className = 'star';
+    star.textContent = '\u2606';
+    star.dataset.value = i;
+    star.onclick = () => {
+      rating = i;
+      starContainer.dataset.rating = i;
+      updateStars(starContainer, i);
+    };
+    star.onmouseenter = () => updateStars(starContainer, i);
+    starContainer.appendChild(star);
+  }
+  starContainer.onmouseleave = () => updateStars(starContainer, parseInt(starContainer.dataset.rating) || 0);
+
+  // Init drop zone for pizza photo
+  const zone = document.getElementById(`pizza-photo-${id}`);
+  const input = zone.querySelector('input[type="file"]');
+  zone._files = [];
+  zone.onclick = (e) => {
+    if (e.target === zone || e.target.tagName !== 'IMG') input.click();
+  };
+  zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('dragover'); };
+  zone.ondragleave = () => zone.classList.remove('dragover');
+  zone.ondrop = (e) => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    handleFiles(zone, e.dataTransfer.files);
+  };
+  input.onchange = () => handleFiles(zone, input.files);
+
+  // Init chip clicks
+  entry.querySelectorAll('.multi-select .chip').forEach(chip => {
+    chip.onclick = () => chip.classList.toggle('selected');
+  });
+}
+
+function removePizza(id) {
+  const el = document.getElementById(`pizza-${id}`);
+  if (el) el.remove();
+}
+
+// ===== SUBMIT =====
+async function submitSession() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const date = document.getElementById('session-date').value;
+    if (!date) { alert('Please select a date'); btn.disabled = false; btn.textContent = 'Save Session'; return; }
+
+    const sessionNumber = parseInt(document.getElementById('session-number').value) || null;
+    const selectedPizzaioli = getSelectedChips('pizzaiolo-select');
+    const guests = document.getElementById('session-guests').value.trim() || null;
+    const flour = document.getElementById('flour').value.trim() || null;
+    const amountFlour = parseInt(document.getElementById('amount-flour').value) || null;
+    const hydration = document.getElementById('hydration').value ? parseFloat(document.getElementById('hydration').value) / 100 : null;
+    const starter = document.getElementById('starter').value ? parseFloat(document.getElementById('starter').value) / 100 : null;
+    const salt = document.getElementById('salt').value ? parseFloat(document.getElementById('salt').value) : null;
+    const ballWeight = parseInt(document.getElementById('ball-weight').value) || null;
+    const yeast = getSelectedChips('yeast-select');
+    const oil = document.getElementById('oil').value || null;
+    const fermTime = document.getElementById('ferm-time').value.trim() || null;
+    const fermBulk = document.getElementById('ferm-bulk').value ? parseFloat(document.getElementById('ferm-bulk').value) : null;
+    const fermBalled = document.getElementById('ferm-balled').value ? parseFloat(document.getElementById('ferm-balled').value) : null;
+    const temperature = getSelectedChips('temp-select');
+    const outsideTemp = document.getElementById('outside-temp').value ? parseFloat(document.getElementById('outside-temp').value) : null;
+    const doughProblems = getSelectedChips('dough-problems');
+    const notes = document.getElementById('session-notes').value.trim() || null;
+
+    // Insert session
+    const { data: sessionData, error: sessionError } = await sbWrite.from('sessions').insert({
+      session_number: sessionNumber,
+      date,
+      pizzaiolo_ids: selectedPizzaioli.length > 0 ? selectedPizzaioli : null,
+      dough_satisfaction: doughSatisfaction || null,
+      session_notes: notes,
+      guests,
+      problems_with_dough: doughProblems.length > 0 ? doughProblems : null,
+      flour,
+      amount_flour: amountFlour,
+      hydration_level: hydration,
+      sourdough_starter: starter,
+      salt,
+      ball_weight: ballWeight,
+      yeast: yeast.length > 0 ? yeast : null,
+      oil,
+      fermentation_time: fermTime,
+      fermentation_bulk: fermBulk,
+      fermentation_balled: fermBalled,
+      temperature: temperature.length > 0 ? temperature : null,
+      outside_temperature_celsius: outsideTemp,
+    }).select();
+
+    if (sessionError) throw sessionError;
+    const sessionId = sessionData[0].id;
+
+    // Upload session photos
+    for (const dropId of ['drop-dough-before', 'drop-dough-after', 'drop-session-pizzas']) {
+      const zone = document.getElementById(dropId);
+      const fieldName = zone.dataset.field;
+      for (let i = 0; i < zone._files.length; i++) {
+        const file = zone._files[i];
+        const storagePath = `${sessionId}/${fieldName}_${i}.jpg`;
+        const { error: uploadErr } = await sbWrite.storage.from('session-photos').upload(storagePath, file, { upsert: true });
+        if (uploadErr) console.error('Photo upload error:', uploadErr);
+        else {
+          await sbWrite.from('session_photos').insert({
+            session_id: sessionId,
+            field_name: fieldName,
+            storage_path: storagePath,
+          });
+        }
+      }
+    }
+
+    // Insert pizzas
+    const pizzaEntries = document.querySelectorAll('.pizza-entry');
+    for (const entry of pizzaEntries) {
+      const id = entry.id.replace('pizza-', '');
+      const name = document.getElementById(`pizza-name-${id}`).value.trim();
+      if (!name) continue;
+
+      const pizzaioloId = document.getElementById(`pizza-pizzaiolo-${id}`).value || null;
+      const starContainer = document.getElementById(`pizza-stars-${id}`);
+      const rating = parseInt(starContainer.dataset.rating) || null;
+      const problems = [...entry.querySelectorAll(`#pizza-problems-${id} .chip.selected`)].map(c => c.dataset.value);
+
+      const { data: pizzaData, error: pizzaError } = await sbWrite.from('pizzas').insert({
+        session_id: sessionId,
+        pizzaiolo_id: pizzaioloId,
+        name,
+        rating,
+        problems: problems.length > 0 ? problems : null,
+      }).select();
+
+      if (pizzaError) { console.error('Pizza insert error:', pizzaError); continue; }
+
+      // Upload pizza photo
+      const photoZone = document.getElementById(`pizza-photo-${id}`);
+      if (photoZone._files.length > 0) {
+        const pizzaId = pizzaData[0].id;
+        const storagePath = `${pizzaId}/photo.jpg`;
+        const { error: uploadErr } = await sbWrite.storage.from('pizza-photos').upload(storagePath, photoZone._files[0], { upsert: true });
+        if (!uploadErr) {
+          await sbWrite.from('pizzas').update({ photo_path: storagePath }).eq('id', pizzaId);
+        }
+      }
+    }
+
+    // Show success
+    document.getElementById('success').style.display = 'block';
+    btn.textContent = 'Saved!';
+    btn.style.background = 'var(--green)';
+
+  } catch (err) {
+    console.error('Submit error:', err);
+    alert('Error saving session: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Save Session';
+  }
+}
+</script>
+</body>
+</html>
