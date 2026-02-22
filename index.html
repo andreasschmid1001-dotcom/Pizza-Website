@@ -809,10 +809,10 @@ async function loadData() {
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 6);
 
-  // Hero — use full-width image with high fetch priority
+  // Hero
   const heroPizza = topRatedPizzas.length > 0 ? topRatedPizzas[0] : null;
   if (heroPizza) {
-    const heroSrc = thumbUrl('pizza-photos', heroPizza.photo_path, 1200, 80);
+    const heroSrc = storageUrl('pizza-photos', heroPizza.photo_path);
     document.getElementById('hero-bg').innerHTML = `<img src="${heroSrc}" alt="Pizza" fetchpriority="high">`;
   }
 
@@ -832,10 +832,9 @@ async function loadData() {
   // ===== HALL OF FAME =====
   let topHTML = '';
   for (const p of topRatedPizzas) {
-    const fullUrl = storageUrl('pizza-photos', p.photo_path);
-    const imgUrl = thumbUrl('pizza-photos', p.photo_path, 600, 80);
+    const imgUrl = storageUrl('pizza-photos', p.photo_path);
     const dateStr = p._session ? formatDate(p._session.date) : '';
-    topHTML += `<div class="top-pizza fade-up" onclick="openLightbox('${fullUrl}')">
+    topHTML += `<div class="top-pizza fade-up" onclick="openLightbox('${imgUrl}')">
       <img src="${imgUrl}" alt="${escapeHtml(p.name)}" fetchpriority="high">
       <div class="top-pizza-overlay">
         <div class="top-pizza-score">${p.rating}/10</div>
@@ -879,12 +878,11 @@ async function loadData() {
 
   let galleryHTML = '';
   for (const pizza of galleryPizzas) {
-    const fullUrl = storageUrl('pizza-photos', pizza.photo_path);
-    const imgUrl = thumbUrl('pizza-photos', pizza.photo_path, 400, 75);
+    const imgUrl = storageUrl('pizza-photos', pizza.photo_path);
     const dateStr = pizza._session ? formatDate(pizza._session.date) : '';
     const pizzaioloName = pizza._pizzaiolo ? pizza._pizzaiolo.name : '';
     const problems = pizza.problems || [];
-    galleryHTML += `<div class="pizza-card" onclick="openLightbox('${fullUrl}')">
+    galleryHTML += `<div class="pizza-card" onclick="openLightbox('${imgUrl}')">
       <div class="pizza-img-wrap">
         <img src="${imgUrl}" alt="${escapeHtml(pizza.name)}" loading="lazy">
         ${pizza.rating ? `<div class="pizza-rating-badge">${pizza.rating}/10</div>` : ''}
@@ -938,26 +936,24 @@ async function loadData() {
     for (const s of yearSessions) {
       const dateStr = s.date ? formatDate(s.date, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown date';
 
-      // Session photos — 300px thumbs, full-size on click
+      // Session photos
       const photos = sessionPhotoMap[s.id] || [];
       let doughPhotos = '';
       for (const photo of photos) {
-        const fullUrl = storageUrl('session-photos', photo.storage_path);
-        const imgUrl = thumbUrl('session-photos', photo.storage_path, 300, 75);
+        const imgUrl = storageUrl('session-photos', photo.storage_path);
         const label = photo.field_name === 'pizzas' ? 'Session Pizzas' : photo.field_name.replace('dough_', '');
-        doughPhotos += `<div class="photo-item"><img src="${imgUrl}" alt="${label}" loading="lazy" onclick="openLightbox('${fullUrl}')"><span class="photo-label">${label}</span></div>\n`;
+        doughPhotos += `<div class="photo-item"><img src="${imgUrl}" alt="${label}" loading="lazy" onclick="openLightbox('${imgUrl}')"><span class="photo-label">${label}</span></div>\n`;
       }
 
-      // Session pizzas — 200px thumbs
+      // Session pizzas
       const sPizzas = pizzasBySession[s.id] || [];
       let pizzaStrip = '';
       if (sPizzas.length > 0) {
         pizzaStrip = '<div class="session-pizza-strip">';
         for (const sp of sPizzas) {
           if (!sp.photo_path) continue;
-          const fullUrl = storageUrl('pizza-photos', sp.photo_path);
-          const imgUrl = thumbUrl('pizza-photos', sp.photo_path, 200, 75);
-          pizzaStrip += `<div class="strip-pizza"><img src="${imgUrl}" alt="${escapeHtml(sp.name)}" loading="lazy" onclick="openLightbox('${fullUrl}')"><div class="strip-info"><span>${escapeHtml(sp.name)}</span>${sp.rating ? `<span class="strip-rating">${sp.rating}/10</span>` : ''}</div></div>`;
+          const imgUrl = storageUrl('pizza-photos', sp.photo_path);
+          pizzaStrip += `<div class="strip-pizza"><img src="${imgUrl}" alt="${escapeHtml(sp.name)}" loading="lazy" onclick="openLightbox('${imgUrl}')"><div class="strip-info"><span>${escapeHtml(sp.name)}</span>${sp.rating ? `<span class="strip-rating">${sp.rating}/10</span>` : ''}</div></div>`;
         }
         pizzaStrip += '</div>';
       }
