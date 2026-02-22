@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pizza Log</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://uwerozmqqhgvvwvsbzzi.supabase.co">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="https://uwerozmqqhgvvwvsbzzi.supabase.co">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
 
@@ -87,6 +90,7 @@
     justify-content: center;
     min-height: 420px;
     overflow: hidden;
+    background: var(--bg-dark);
   }
   .hero-bg {
     position: absolute;
@@ -626,24 +630,24 @@
 </head>
 <body>
 
+<!-- Hero visible immediately -->
+<div class="hero">
+  <div class="hero-bg" id="hero-bg"></div>
+  <div class="hero-content fade-up visible">
+    <div class="hero-eyebrow" id="hero-eyebrow">Since 2020</div>
+    <h1>Pizza<br><em>Log</em></h1>
+    <p class="subtitle" id="hero-subtitle">Loading...</p>
+  </div>
+</div>
+
+<div class="stats-row fade-up" id="stats-row"></div>
+
 <div id="loading" class="loading-screen">
   <div class="spinner"></div>
   <div class="loading-text">Loading pizza data...</div>
 </div>
 
 <div id="app" style="display:none">
-  <!-- Hero -->
-  <div class="hero">
-    <div class="hero-bg" id="hero-bg"></div>
-    <div class="hero-content fade-up">
-      <div class="hero-eyebrow" id="hero-eyebrow"></div>
-      <h1>Pizza<br><em>Log</em></h1>
-      <p class="subtitle" id="hero-subtitle"></p>
-    </div>
-  </div>
-
-  <div class="stats-row fade-up" id="stats-row"></div>
-
   <div class="tab-nav">
     <button class="tab-btn active" data-tab="stats">Hall of Fame</button>
     <button class="tab-btn" data-tab="gallery">Gallery</button>
@@ -706,6 +710,11 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function storageUrl(bucket, path) {
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+// Resized image via Supabase transforms — much smaller file sizes
+function thumbUrl(bucket, path, width, quality) {
+  return `${SUPABASE_URL}/storage/v1/render/image/public/${bucket}/${path}?width=${width || 400}&quality=${quality || 75}`;
 }
 
 function escapeHtml(s) {
@@ -800,10 +809,11 @@ async function loadData() {
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 6);
 
-  // Hero
+  // Hero — use full-width image with high fetch priority
   const heroPizza = topRatedPizzas.length > 0 ? topRatedPizzas[0] : null;
   if (heroPizza) {
-    document.getElementById('hero-bg').innerHTML = `<img src="${storageUrl('pizza-photos', heroPizza.photo_path)}" alt="Pizza">`;
+    const heroSrc = thumbUrl('pizza-photos', heroPizza.photo_path, 1200, 80);
+    document.getElementById('hero-bg').innerHTML = `<img src="${heroSrc}" alt="Pizza" fetchpriority="high">`;
   }
 
   const dates = sessions.filter(s => s.date).map(s => s.date).sort();
@@ -822,10 +832,11 @@ async function loadData() {
   // ===== HALL OF FAME =====
   let topHTML = '';
   for (const p of topRatedPizzas) {
-    const imgUrl = storageUrl('pizza-photos', p.photo_path);
+    const fullUrl = storageUrl('pizza-photos', p.photo_path);
+    const imgUrl = thumbUrl('pizza-photos', p.photo_path, 600, 80);
     const dateStr = p._session ? formatDate(p._session.date) : '';
-    topHTML += `<div class="top-pizza fade-up" onclick="openLightbox('${imgUrl}')">
-      <img src="${imgUrl}" alt="${escapeHtml(p.name)}" loading="lazy">
+    topHTML += `<div class="top-pizza fade-up" onclick="openLightbox('${fullUrl}')">
+      <img src="${imgUrl}" alt="${escapeHtml(p.name)}" fetchpriority="high">
       <div class="top-pizza-overlay">
         <div class="top-pizza-score">${p.rating}/10</div>
         <div class="top-pizza-name">${escapeHtml(p.name)}</div>
@@ -868,11 +879,12 @@ async function loadData() {
 
   let galleryHTML = '';
   for (const pizza of galleryPizzas) {
-    const imgUrl = storageUrl('pizza-photos', pizza.photo_path);
+    const fullUrl = storageUrl('pizza-photos', pizza.photo_path);
+    const imgUrl = thumbUrl('pizza-photos', pizza.photo_path, 400, 75);
     const dateStr = pizza._session ? formatDate(pizza._session.date) : '';
     const pizzaioloName = pizza._pizzaiolo ? pizza._pizzaiolo.name : '';
     const problems = pizza.problems || [];
-    galleryHTML += `<div class="pizza-card" onclick="openLightbox('${imgUrl}')">
+    galleryHTML += `<div class="pizza-card" onclick="openLightbox('${fullUrl}')">
       <div class="pizza-img-wrap">
         <img src="${imgUrl}" alt="${escapeHtml(pizza.name)}" loading="lazy">
         ${pizza.rating ? `<div class="pizza-rating-badge">${pizza.rating}/10</div>` : ''}
@@ -926,24 +938,26 @@ async function loadData() {
     for (const s of yearSessions) {
       const dateStr = s.date ? formatDate(s.date, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown date';
 
-      // Session photos
+      // Session photos — 300px thumbs, full-size on click
       const photos = sessionPhotoMap[s.id] || [];
       let doughPhotos = '';
       for (const photo of photos) {
-        const imgUrl = storageUrl('session-photos', photo.storage_path);
+        const fullUrl = storageUrl('session-photos', photo.storage_path);
+        const imgUrl = thumbUrl('session-photos', photo.storage_path, 300, 75);
         const label = photo.field_name === 'pizzas' ? 'Session Pizzas' : photo.field_name.replace('dough_', '');
-        doughPhotos += `<div class="photo-item"><img src="${imgUrl}" alt="${label}" loading="lazy" onclick="openLightbox('${imgUrl}')"><span class="photo-label">${label}</span></div>\n`;
+        doughPhotos += `<div class="photo-item"><img src="${imgUrl}" alt="${label}" loading="lazy" onclick="openLightbox('${fullUrl}')"><span class="photo-label">${label}</span></div>\n`;
       }
 
-      // Session pizzas
+      // Session pizzas — 200px thumbs
       const sPizzas = pizzasBySession[s.id] || [];
       let pizzaStrip = '';
       if (sPizzas.length > 0) {
         pizzaStrip = '<div class="session-pizza-strip">';
         for (const sp of sPizzas) {
           if (!sp.photo_path) continue;
-          const imgUrl = storageUrl('pizza-photos', sp.photo_path);
-          pizzaStrip += `<div class="strip-pizza"><img src="${imgUrl}" alt="${escapeHtml(sp.name)}" loading="lazy" onclick="openLightbox('${imgUrl}')"><div class="strip-info"><span>${escapeHtml(sp.name)}</span>${sp.rating ? `<span class="strip-rating">${sp.rating}/10</span>` : ''}</div></div>`;
+          const fullUrl = storageUrl('pizza-photos', sp.photo_path);
+          const imgUrl = thumbUrl('pizza-photos', sp.photo_path, 200, 75);
+          pizzaStrip += `<div class="strip-pizza"><img src="${imgUrl}" alt="${escapeHtml(sp.name)}" loading="lazy" onclick="openLightbox('${fullUrl}')"><div class="strip-info"><span>${escapeHtml(sp.name)}</span>${sp.rating ? `<span class="strip-rating">${sp.rating}/10</span>` : ''}</div></div>`;
         }
         pizzaStrip += '</div>';
       }
